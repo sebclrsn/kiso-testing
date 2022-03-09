@@ -22,6 +22,7 @@ Thread based Auxiliary Interface
 import abc
 import logging
 import queue
+import sys
 import threading
 import time
 from typing import List, Optional
@@ -47,7 +48,6 @@ class AuxiliaryInterface(threading.Thread, AuxiliaryCommon):
         self,
         name: str = None,
         is_proxy_capable: bool = False,
-        is_pausable: bool = False,
         activate_log: List[str] = None,
         auto_start: bool = True,
     ) -> None:
@@ -56,8 +56,6 @@ class AuxiliaryInterface(threading.Thread, AuxiliaryCommon):
         :param name: alias of the auxiliary instance
         :param is_proxy_capable: notify if the current auxiliary could
             be (or not) associated to a proxy-auxiliary.
-        :param is_pausable: notify if the current auxiliary could be
-            (or not) paused
         :param activate_log: loggers to deactivate
         :param auto_start: determine if the auxiliayry is automatically
              started (magic import) or manually (by user)
@@ -72,9 +70,7 @@ class AuxiliaryInterface(threading.Thread, AuxiliaryCommon):
         self.queue_in = queue.Queue()
         self.queue_out = queue.Queue()
         self.stop_event = threading.Event()
-        self.wait_event = threading.Event()
         self.is_proxy_capable = is_proxy_capable
-        self.is_pausable = is_pausable
         # Create state
         self.is_instance = False
         self.auto_start = auto_start
@@ -135,6 +131,8 @@ class AuxiliaryInterface(threading.Thread, AuxiliaryCommon):
             report = self.queue_out.get()
             # Release the above lock
             self.lock.release()
+            if report is False:
+                raise ConnectionError(f"Failed to create auxiliary {self}")
             # Return the report
             return report
 
@@ -169,6 +167,8 @@ class AuxiliaryInterface(threading.Thread, AuxiliaryCommon):
                 self.is_instance = return_code
                 # Enqueue the result for the request caller
                 self.queue_out.put(return_code)
+                if not self.is_instance:
+                    raise ConnectionError()
             elif request == "delete_auxiliary_instance" and self.is_instance:
                 # Call the internal instance delete method
                 return_code = self._delete_auxiliary_instance()
@@ -195,7 +195,7 @@ class AuxiliaryInterface(threading.Thread, AuxiliaryCommon):
                 log.warning(f"Aux status: {self.__dict__}")
 
             # Step 2: Check if something was received from the aux instance if instance was created
-            if self.is_instance and not self.is_pausable:
+            if self.is_instance:
                 received_message = self._receive_message(timeout_in_s=0)
                 # If yes, send it via the out queue
                 if received_message is not None:
@@ -205,9 +205,6 @@ class AuxiliaryInterface(threading.Thread, AuxiliaryCommon):
             if not self.is_instance:
                 time.sleep(0.050)
 
-            # If auxiliary instance is created and is pausable
-            if self.is_instance and self.is_pausable:
-                self.wait_event.wait()
         # Thread stop command was set
         log.info("{} was stopped".format(self))
         # Delete auxiliary external instance if not done

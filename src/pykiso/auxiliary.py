@@ -102,7 +102,7 @@ class AuxiliaryCommon(metaclass=abc.ABCMeta):
             # possible ConnectionRefusedError)
             time.sleep(1.100)
         # apply new configuration parameters values based on yaml config
-        for name, val in base_conf.items():
+        for name in base_conf.keys():
             if name in modified_params:
                 modified_conf[name] = config[name]
         # add new parameters values (not explicitly mention in yaml)
@@ -234,23 +234,23 @@ class AuxiliaryCommon(metaclass=abc.ABCMeta):
         if not self.stop_event.is_set() and not self.is_instance:
             self.create_instance()
         else:
-            log.error("Cannot resume auxiliary, error occurred during creation")
+            log.error(f"Auxiliary '{self}' is already running")
 
     def suspend(self) -> None:
         """Supend current auxiliary's run."""
         if self.is_instance:
             self.delete_instance()
         else:
-            log.error("Cannot suspend auxiliary, error occurred during creation")
+            log.error(f"Auxiliary '{self}' is already stopped")
 
     @abc.abstractmethod
     def create_instance(self) -> bool:
-        """Run function of the auxiliary."""
+        """Handle auxiliary creation."""
         pass
 
     @abc.abstractmethod
     def delete_instance(self) -> bool:
-        """Run function of the auxiliary."""
+        """Handle auxiliary deletion."""
         pass
 
     @abc.abstractmethod

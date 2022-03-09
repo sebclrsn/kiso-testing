@@ -80,6 +80,7 @@ class SimpleAuxiliaryInterface(metaclass=abc.ABCMeta):
         if not self.is_instance:
             self.create_instance()
         else:
+            # TODO ERROR PROPAGATION RAISE
             log.error("Cannot resume auxiliary, error occurred during creation")
 
     def suspend(self) -> None:
@@ -87,6 +88,7 @@ class SimpleAuxiliaryInterface(metaclass=abc.ABCMeta):
         if self.is_instance:
             self.delete_instance()
         else:
+            # TODO ERROR PROPAGATION RAISE
             log.error("Cannot suspend auxiliary, error occurred during creation")
 
     def stop(self):

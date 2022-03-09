@@ -162,6 +162,11 @@ def failure_and_error_handling(result: unittest.TestResult) -> int:
     return exit_code
 
 
+# import sys
+
+# sys.excepthook()
+
+
 def execute(
     config: Dict,
     report_type: str = "text",
@@ -184,6 +189,7 @@ def execute(
     is_raised = False
 
     try:
+        print("### Collect")
         list_of_test_suites = []
         for test_suite_configuration in config["test_suite_list"]:
             try:
@@ -193,11 +199,13 @@ def execute(
             except BaseException:
                 is_raised = True
                 break
-
+        print("### Create test suite")
         # Collect all the tests in one global test suite
         all_tests_to_run = unittest.TestSuite(list_of_test_suites)
         if variants or branch_levels:
             apply_variant_filter(all_tests_to_run, variants, branch_levels)
+
+        print("### Run test suite")
         # TestRunner selection: generate or not a junit report. Start the tests and publish the results
         if report_type == "junit":
             junit_report_name = time.strftime("TEST-pykiso-%Y-%m-%d_%H-%M-%S.xml")
@@ -214,6 +222,7 @@ def execute(
             test_runner = unittest.TextTestRunner(resultclass=BannerTestResult)
             result = test_runner.run(all_tests_to_run)
 
+        print("### Exit run")
         # if an exception is raised during test suite collections at least
         # return exit code ONE_OR_MORE_TESTS_RAISED_UNEXPECTED_EXCEPTION
         if is_raised:
@@ -224,6 +233,9 @@ def execute(
     except KeyboardInterrupt:
         log.exception("Keyboard Interrupt detected")
         exit_code = ExitCode.ONE_OR_MORE_TESTS_RAISED_UNEXPECTED_EXCEPTION
+    except ConnectionError:
+        log.exception("Issue detected during test-suite setup")
+        exit_code = ExitCode.ONE_OR_MORE_TESTS_FAILED_AND_RAISED_UNEXPECTED_EXCEPTION
     except Exception:
         log.exception(f'Issue detected in the test-suite: {config["test_suite_list"]}!')
         exit_code = ExitCode.ONE_OR_MORE_TESTS_RAISED_UNEXPECTED_EXCEPTION
