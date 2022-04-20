@@ -338,7 +338,7 @@ update_copyright()
 
     [tool.poe.tasks.run]
     ignore_fail = true
-    help = "Delete temporary files."
+    help = "Run the example of pykiso."
     args=[{name="level",default="INFO",options = ["-l", "--level"]}]
     sequence=[{shell="""
 import os
