@@ -99,20 +99,20 @@ omit = [
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poe.env]
-log="killme.log"
+[tool.poe]
+verbosity = -1
 
+[tool.poe.executor]
+type = "poetry"
 
 [tool.poe.tasks]
 
-test={shell=""" 
-import os   
-import platform
-pty = platform.system() == "Linux"
-os.system("pytest")
-""",interpreter="python"}
+    [tool.poe.tasks.test]
+    cmd="pytest"
 
-clean_docs={ shell = """
+ 
+    [tool.poe.tasks.clean_docs]
+    shell = """
 from pathlib import Path
 import glob
 import shutil
@@ -120,105 +120,80 @@ import os
 ROOT_DIR = os.getcwd()
 DOCS_DIR = ROOT_DIR+  "/docs"
 DOCS_BUILD_DIR = DOCS_DIR+  "/_build"
-def delete_folders(folder_name: str, root_dir: str = None) -> None:
-    if isinstance(folder_name, Path):
-        folder_name = str(folder_name)
-    search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
+folder_name=DOCS_BUILD_DIR
+root_dir=None
+if isinstance(folder_name, Path):
+    folder_name = str(folder_name)
+search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
 
-    for folder in glob.iglob(search_path, recursive=True):
-        if Path(folder).is_dir():
-            shutil.rmtree(folder)
+for folder in glob.iglob(search_path, recursive=True):
+    if Path(folder).is_dir():
+        shutil.rmtree(folder)
 
-delete_folders(DOCS_BUILD_DIR)
-""",interpreter="python"} 
-
-clean_build= {shell= """
-import os 
-import glob
-from pathlib import Path
-from typing import Union
-ROOT_DIR = os.getcwd()
-
-def _delete_files(
-    file_name: Union[str, Path], root_dir: Union[str, Path] = None
-) -> None:
-    '''Delete files which matches given pattern.
-    :param file_name: file name as unix shell style wildcard.
-      Examples: "../../Tools/*/*.gif"
-    :param root_dir: root folder to start search from (optional)
-    :raise OsError: when file cant be removed
-    .. note:: Using the “**” pattern in large directory trees may consume an inordinate amount of time.
-    '''
-    if isinstance(file_name, Path):
-        file_name = str(file_name)
-    search_path = os.path.join(root_dir, file_name) if root_dir else file_name
-
-    for file in glob.iglob(search_path, recursive=True):
-        if Path(file).is_file():
-            os.remove(file)
+"""
+    interpreter="python"
 
 
-def _delete_folders(folder_name: str, root_dir: str = None) -> None:
-    '''Delete folders which matches given pattern.
-    :param folder_name: folder name as unix shell style wildcard.
-      Examples: "**/*__pycache__" for all folders named "__pycache__"
-    :param root_dir: root folder to start search from (optional)
-    .. note:: Using the “**” pattern in large directory trees may consume an inordinate amount of time.
-    '''
-    if isinstance(folder_name, Path):
-        folder_name = str(folder_name)
-    search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
-
-    for folder in glob.iglob(search_path, recursive=True):
-        if Path(folder).is_dir():
-            shutil.rmtree(folder)
-
-_delete_folders("build", root_dir=ROOT_DIR)
-_delete_folders("dist", root_dir=ROOT_DIR)
-_delete_folders(".eggs", root_dir=ROOT_DIR)
-_delete_folders("**/*.egg-info", root_dir=ROOT_DIR)
-_delete_files("**/*.egg", root_dir=ROOT_DIR)
-""",interpreter="python"}
-
-clean_python={shell= """
+    [tool.poe.tasks.clean_build]
+    shell= """
 import os 
 import glob
 from pathlib import Path
 from typing import Union
 import shutil
 ROOT_DIR = os.getcwd()
+root_dir=ROOT_DIR
+file_name="**/*.egg"
 
-def _delete_files(
-    file_name: Union[str, Path], root_dir: Union[str, Path] = None
-) -> None:
+if isinstance(file_name, Path):
+    file_name = str(file_name)
+search_path = os.path.join(root_dir, file_name) if root_dir else file_name
+for file in glob.iglob(search_path, recursive=True):
+    if Path(file).is_file():
+        os.remove(file)
+
+folders=["build","dist",".eggs","**/*.egg-info"]
+for folder_name in folders:
+    if isinstance(folder_name, Path):
+        folder_name = str(folder_name)
+    search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
+    for folder in glob.iglob(search_path, recursive=True):
+        if Path(folder).is_dir():
+            shutil.rmtree(folder)
+"""
+    interpreter="python"
+
+    [tool.poe.tasks.clean_python]
+    shell= """
+import os 
+import glob
+from pathlib import Path
+from typing import Union
+import shutil
+ROOT_DIR = os.getcwd()
+root_dir=ROOT_DIR
+
+files=["run.py","**/*.pyc","**/*.pyo","**/*~"]
+for file_name in files :
     if isinstance(file_name, Path):
         file_name = str(file_name)
     search_path = os.path.join(root_dir, file_name) if root_dir else file_name
-
     for file in glob.iglob(search_path, recursive=True):
         if Path(file).is_file():
             os.remove(file)
 
+folder_name="**/*__pycache__"
+if isinstance(folder_name, Path):
+    folder_name = str(folder_name)
+search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
+for folder in glob.iglob(search_path, recursive=True):
+    if Path(folder).is_dir():
+        shutil.rmtree(folder)
+"""
+    interpreter="python"
 
-def _delete_folders(folder_name: str, root_dir: str = None) -> None:
-    if isinstance(folder_name, Path):
-        folder_name = str(folder_name)
-    search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
-
-    for folder in glob.iglob(search_path, recursive=True):
-        if Path(folder).is_dir():
-            shutil.rmtree(folder)
-            
-_delete_files("run.py", root_dir=ROOT_DIR)
-_delete_files("**/*.pyc", root_dir=ROOT_DIR)
-_delete_files("**/*.pyo", root_dir=ROOT_DIR)
-_delete_files("**/*~", root_dir=ROOT_DIR)
-_delete_folders("**/*__pycache__", root_dir=ROOT_DIR)
-
-
-""",interpreter="python"}
-
-docs=["clean_docs",{shell="""
+    [tool.poe.tasks.docs]
+    sequence=["clean_docs",{shell="""
 import os
 import webbrowser
 from pathlib import Path
@@ -234,12 +209,16 @@ webbrowser.open(DOCS_INDEX)
 
 """,interpreter="python"}]
 
-changelog={shell="""
+    [tool.poe.tasks.changelog]
+    shell="""
 import os
 os.system("auto-changelog -u --template templates/changelog/changelog.jinja2")
-""",interpreter="python"}
+"""
+    interpreter="python"
 
-clean_tests={shell= """
+
+    [tool.poe.tasks.clean_tests]
+    shell= """
 import os 
 import glob
 import shutil
@@ -248,54 +227,36 @@ from typing import Union
 ROOT_DIR = os.getcwd()
 TEST_DIR = ROOT_DIR+  "/tests"
 COVERAGE_DIR = TEST_DIR + "/coverage_report.html"
+root_dir=ROOT_DIR
+file_name=".coverage", 
+if isinstance(file_name, Path):
+    file_name = str(file_name)
+search_path = os.path.join(root_dir, str(file_name)) if root_dir else file_name
 
-def _delete_files(
-    file_name: Union[str, Path], root_dir: Union[str, Path] = None
-) -> None:
-    '''Delete files which matches given pattern.
-    :param file_name: file name as unix shell style wildcard.
-      Examples: "../../Tools/*/*.gif"
-    :param root_dir: root folder to start search from (optional)
-    :raise OsError: when file cant be removed
-    .. note:: Using the “**” pattern in large directory trees may consume an inordinate amount of time.
-    '''
+for file in glob.iglob(search_path, recursive=True):
+    if Path(file).is_file():
+        os.remove(file)
 
-    if isinstance(file_name, Path):
-        file_name = str(file_name)
-    search_path = os.path.join(root_dir, file_name) if root_dir else file_name
+folder_name="**/\\.pytest_cache"
+if isinstance(folder_name, Path):
+    folder_name = str(folder_name)
+search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
+for folder in glob.iglob(search_path, recursive=True):
+    if Path(folder).is_dir():
+        shutil.rmtree(folder)
 
-    for file in glob.iglob(search_path, recursive=True):
-        if Path(file).is_file():
-            os.remove(file)
-
-
-def _delete_folders(folder_name: str, root_dir: str = None) -> None:
-    '''Delete folders which matches given pattern.
-    :param folder_name: folder name as unix shell style wildcard.
-      Examples: "**/*__pycache__" for all folders named "__pycache__"
-    :param root_dir: root folder to start search from (optional)
-    .. note:: Using the “**” pattern in large directory trees may consume an inordinate amount of time.
-    '''
-    if isinstance(folder_name, Path):
-        folder_name = str(folder_name)
-    search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
-
-    for folder in glob.iglob(search_path, recursive=True):
-        if Path(folder).is_dir():
-            shutil.rmtree(folder)
-
-_delete_folders("**/\\.pytest_cache", root_dir=ROOT_DIR)
-_delete_files(".coverage", root_dir=ROOT_DIR)
 shutil.rmtree(COVERAGE_DIR, ignore_errors=True)
+"""
+    interpreter="python"
 
 
-""",interpreter="python"}
+    [tool.poe.tasks.clean]
 
-clean=["clean_build", "clean_python", "clean_tests", "clean_docs"]
+    sequence=["clean_build", "clean_python", "clean_tests", "clean_docs"]
 
-    
 
-update_copyright={shell="""
+    [tool.poe.tasks.update_copyright]
+    shell="""
 import glob
 import re
 import pathlib
@@ -310,30 +271,27 @@ COPYRIGHT='''\
 ##########################################################################
 
 '''
+p = pathlib.Path(".")
+files = p.glob("**/*.py")
 
-def update_copyright():
-    p = pathlib.Path(".")
-    files = p.glob("**/*.py")
+# RST docs copyright notice
+pat = r':Copyright:.*?SPDX-License-Identifier: EPL-[0-9.]\\s'
+cp_doc_pat = re.compile(pat, re.MULTILINE + re.DOTALL)
+# comment copyright notice
+pat = r'#*\\s*#\\s*Copyright.*?#\\s*SPDX-License-Identifier: EPL-[0-9.]+\\s*#*\\s+'
+cp_com_pat = re.compile(pat, re.MULTILINE + re.DOTALL)
 
-    # RST docs copyright notice
-    pat = r':Copyright:.*?SPDX-License-Identifier: EPL-[0-9.]\\s'
-    cp_doc_pat = re.compile(pat, re.MULTILINE + re.DOTALL)
-    # comment copyright notice
-    pat = r'#*\\s*#\\s*Copyright.*?#\\s*SPDX-License-Identifier: EPL-[0-9.]+\\s*#*\\s+'
-    cp_com_pat = re.compile(pat, re.MULTILINE + re.DOTALL)
-
-    for pyf in files:
-        with open(pyf, "r+", encoding="utf8") as f:
-            text = f.read()
-            text = cp_doc_pat.sub("", text, count=1)
-            text = cp_com_pat.sub("", text, count=1)
-            text = COPYRIGHT + text
-            f.seek(0)
-            f.write(text)
-            f.truncate()
-
-update_copyright()
-""",interpreter="python"}
+for pyf in files:
+    with open(pyf, "r+", encoding="utf8") as f:
+        text = f.read()
+        text = cp_doc_pat.sub("", text, count=1)
+        text = cp_com_pat.sub("", text, count=1)
+        text = COPYRIGHT + text 
+        f.seek(0)
+        f.write(text)
+        f.truncate()
+"""
+    interpreter="python"
 
 
     [tool.poe.tasks.run]
@@ -351,23 +309,17 @@ import sys
 
 ROOT_DIR = os.getcwd()
 
-
-def _delete_files(
-    file_name: Union[str, Path], root_dir: Union[str, Path] = None
-) -> None:
+def run(level):
+    root_dir=ROOT_DIR
+    file_name="killme.log"
     if isinstance(file_name, Path):
         file_name = str(file_name)
     search_path = os.path.join(root_dir, file_name) if root_dir else file_name
 
     for file in glob.iglob(search_path, recursive=True):
         if Path(file).is_file():
-            os.remove(file)
-
-
-def run(level):
-    _delete_files("killme.log", root_dir=ROOT_DIR)
+            os.remove(file)    
     os.system(f"pykiso -c examples/dummy.yaml --log-level={level} -l killme.log")
-
 
 if __name__ == "__main__":
     globals()[sys.argv[1]](sys.argv[2])
@@ -384,17 +336,15 @@ from pathlib import Path
 from typing import Union
 import shutil
 ROOT_DIR = os.getcwd()
+root_dir=ROOT_DIR
+file_name="run.py"
 
-def _delete_files(
-    file_name: Union[str, Path], root_dir: Union[str, Path] = None
-) -> None:
-    if isinstance(file_name, Path):
-        file_name = str(file_name)
-    search_path = os.path.join(root_dir, file_name) if root_dir else file_name
+if isinstance(file_name, Path):
+    file_name = str(file_name)
+search_path = os.path.join(root_dir, file_name) if root_dir else file_name
 
-    for file in glob.iglob(search_path, recursive=True):
-        if Path(file).is_file():
-            os.remove(file)
-_delete_files("run.py", root_dir=ROOT_DIR)
+for file in glob.iglob(search_path, recursive=True):
+    if Path(file).is_file():
+        os.remove(file)
 
     """,interpreter="python"}]
