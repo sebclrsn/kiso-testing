@@ -108,68 +108,48 @@ build-backend = "poetry.core.masonry.api"
     [tool.poe.tasks.clean_docs]
     help="Clean the documentation generated."
     shell = """
-import os
-import glob
-import shutil
-from pathlib import Path
-folder_name= os.getcwd()+ "/docs/_build"
-root_dir=None
-if isinstance(folder_name, Path): folder_name = str(folder_name)
-search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
-for folder in glob.iglob(search_path, recursive=True):
-    if Path(folder).is_dir(): shutil.rmtree(folder)"""
+import os,glob,shutil
+for folder in glob.iglob(os.getcwd()+ "/docs/_build", recursive=True):
+    if os.path.isdir(folder): shutil.rmtree(folder)"""
     interpreter="python"
 
     [tool.poe.tasks.clean_build]
     shell= """
-import os 
-import glob
-import shutil
-from pathlib import Path
+import os,glob,shutil
 root_dir=os.getcwd()
 file_name="**/*.egg"
-if isinstance(file_name, Path): file_name = str(file_name)
-search_path = os.path.join(root_dir, file_name) if root_dir else file_name
+search_path = os.path.join(root_dir, file_name)
 for file in glob.iglob(search_path, recursive=True):
-    if Path(file).is_file(): os.remove(file)
+    if os.path.isfile(file): os.remove(file)
 folders=["build","dist",".eggs","**/*.egg-info"]
 for folder_name in folders:
-    if isinstance(folder_name, Path): folder_name = str(folder_name)
-    search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
+    search_path = os.path.join(root_dir, folder_name) 
     for folder in glob.iglob(search_path, recursive=True):
-        if Path(folder).is_dir(): shutil.rmtree(folder)"""
+        if os.path.isdir(folder): shutil.rmtree(folder)"""
     interpreter="python"
 
     [tool.poe.tasks.clean_python]
     shell= """
-import os
-import glob
-import shutil
-from pathlib import Path
+import os,glob,shutil
 root_dir=os.getcwd()
 files=["run.py","**/*.pyc","**/*.pyo","**/*~"]
 for file_name in files :
-    if isinstance(file_name, Path): file_name = str(file_name)
-    search_path = os.path.join(root_dir, file_name) if root_dir else file_name
+    search_path = os.path.join(root_dir, file_name) 
     for file in glob.iglob(search_path, recursive=True):
-        if Path(file).is_file(): os.remove(file)
+        if os.path.isfile(file): os.remove(file)
 folder_name="**/*__pycache__"
-if isinstance(folder_name, Path): folder_name = str(folder_name)
-search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
+search_path = os.path.join(root_dir, folder_name) 
 for folder in glob.iglob(search_path, recursive=True):
-    if Path(folder).is_dir(): shutil.rmtree(folder)"""
+    if os.path.isdir(folder): shutil.rmtree(folder)"""
     interpreter="python"
 
     [tool.poe.tasks.docs]
     help="Create and open the documentation for pykiso."
     sequence=["clean_docs",{shell="""
-import os
-import webbrowser
+import os,webbrowser
 DOCS_DIR = os.getcwd()  +"/docs"
-DOCS_BUILD_DIR = DOCS_DIR  +"/_build"
-DOCS_INDEX = DOCS_BUILD_DIR  +"/index.html"
-os.system("sphinx-build -b html {} {}".format(DOCS_DIR, DOCS_BUILD_DIR))
-webbrowser.open(DOCS_INDEX)""",interpreter="python"}]
+os.system(f"sphinx-build -b html {DOCS_DIR} { DOCS_DIR  +'/_build'}")
+webbrowser.open(DOCS_DIR+"/_build/index.html")""",interpreter="python"}]
 
     [tool.poe.tasks.changelog]
     shell="""
@@ -179,23 +159,17 @@ os.system("auto-changelog -u --template templates/changelog/changelog.jinja2")""
 
     [tool.poe.tasks.clean_tests]
     shell= """
-import os
-import glob
-import shutil
-from pathlib import Path
+import os,glob,shutil
 root_dir = os.getcwd()
-COVERAGE_DIR = root_dir + "/tests/coverage_report.html"
 file_name=".coverage"
-if isinstance(file_name, Path): file_name = str(file_name)
-search_path = os.path.join(root_dir, str(file_name)) if root_dir else file_name
+search_path = os.path.join(root_dir, str(file_name))
 for file in glob.iglob(search_path, recursive=True):
-    if Path(file).is_file(): os.remove(file)
+    if os.path.isfile(file): os.remove(file)
 folder_name="**/\\.pytest_cache"
-if isinstance(folder_name, Path): folder_name = str(folder_name)
-search_path = os.path.join(root_dir, folder_name) if root_dir else folder_name
+search_path = os.path.join(root_dir, folder_name)
 for folder in glob.iglob(search_path, recursive=True):
-    if Path(folder).is_dir(): shutil.rmtree(folder)
-shutil.rmtree(COVERAGE_DIR, ignore_errors=True)"""
+    if os.path.isdir(folder): shutil.rmtree(folder)
+shutil.rmtree(root_dir + "/tests/coverage_report.html", ignore_errors=True)"""
     interpreter="python"
 
     [tool.poe.tasks.clean]
@@ -203,9 +177,7 @@ shutil.rmtree(COVERAGE_DIR, ignore_errors=True)"""
 
     [tool.poe.tasks.update_copyright]
     shell="""
-import re
-import glob
-import pathlib
+import re,glob,pathlib
 COPYRIGHT='''\
 ##########################################################################
 # Copyright (c) 2010-2022 Robert Bosch GmbH
@@ -241,18 +213,14 @@ for pyf in files:
     sequence=[{shell="""
 import os
 script='''
-import os
-import glob
-from pathlib import Path
-import sys
+import os,glob,sys
 ROOT_DIR = os.getcwd()
 def run(level):
     root_dir=ROOT_DIR
     file_name="killme.log"
-    if isinstance(file_name, Path): file_name = str(file_name)
-    search_path = os.path.join(root_dir, file_name) if root_dir else file_name
+    search_path = os.path.join(root_dir, file_name)
     for file in glob.iglob(search_path, recursive=True):
-        if Path(file).is_file(): os.remove(file)
+        if os.path.isfile(file): os.remove(file)
     os.system(f"pykiso -c examples/dummy.yaml --log-level={level} -l killme.log")
 if __name__ == "__main__":
     globals()[sys.argv[1]](sys.argv[2])
@@ -261,13 +229,9 @@ with open("run.py", "w", encoding="utf8") as f:
     f.write(script)""",interpreter="python"},
     {cmd="python run.py run $level"},
     {shell="""
-import os
-import glob
-import shutil
-from pathlib import Path
+import os,glob
 root_dir=os.getcwd()
 file_name="run.py"
-if isinstance(file_name, Path): file_name = str(file_name)
-search_path = os.path.join(root_dir, file_name) if root_dir else file_name
+search_path = os.path.join(root_dir, file_name)
 for file in glob.iglob(search_path, recursive=True):
-    if Path(file).is_file(): os.remove(file)""",interpreter="python"}]
+    if os.path.isfile(file): os.remove(file)""",interpreter="python"}]
