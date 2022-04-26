@@ -46,12 +46,13 @@ robotframework = "3.2.2"
 unittest-xml-reporting = "*"
 click = "*"
 MarkupSafe = "~2.0"
+poethepoet = "^0.13.1"
 
 [tool.poetry.dev-dependencies]
 auto-changelog = "0.5.3"
 black = { version = "^21.12b0", allow-prereleases = true }
 bump2version = "*"
-coverage = { version = "^5.0", extras = ["toml"] }
+coverage = "*"
 invoke = "*"
 pdbpp = "*"
 pre-commit = "*"
@@ -63,6 +64,7 @@ Sphinx = "*"
 sphinx-rtd-theme = "*"
 sphinxcontrib-programoutput = "*"
 sphinx-autodoc-typehints = "*"
+poethepoet = "^0.13.1"
 
 [tool.poetry.scripts]
 pykiso = 'pykiso.cli:main'
@@ -78,6 +80,7 @@ addopts = """\
     --cov=./src \
     --cov-report=html \
     --cov-report html:./tests/coverage_report.html \
+    --cov-config=.coveragerc \
     --ignore=tests/test_acroname_usb_auxiliary.py \
     --ignore=tests/test_robot_acroname.py \
 """
@@ -95,3 +98,140 @@ omit = [
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poe.tasks]
+
+    [tool.poe.tasks.test]
+    help="Run pytest."
+    cmd="pytest"
+
+    [tool.poe.tasks.clean_docs]
+    help="Clean the documentation generated."
+    shell = """
+import os,glob,shutil
+for folder in glob.iglob(os.getcwd()+ "/docs/_build", recursive=True):
+    if os.path.isdir(folder): shutil.rmtree(folder)"""
+    interpreter="python"
+
+    [tool.poe.tasks.clean_build]
+    shell= """
+import os,glob,shutil
+root_dir=os.getcwd()
+file_name="**/*.egg"
+search_path = os.path.join(root_dir, file_name)
+for file in glob.iglob(search_path, recursive=True):
+    if os.path.isfile(file): os.remove(file)
+folders=["build","dist",".eggs","**/*.egg-info"]
+for folder_name in folders:
+    search_path = os.path.join(root_dir, folder_name) 
+    for folder in glob.iglob(search_path, recursive=True):
+        if os.path.isdir(folder): shutil.rmtree(folder)"""
+    interpreter="python"
+
+    [tool.poe.tasks.clean_python]
+    shell= """
+import os,glob,shutil
+root_dir=os.getcwd()
+files=["run.py","**/*.pyc","**/*.pyo","**/*~"]
+for file_name in files :
+    search_path = os.path.join(root_dir, file_name) 
+    for file in glob.iglob(search_path, recursive=True):
+        if os.path.isfile(file): os.remove(file)
+folder_name="**/*__pycache__"
+search_path = os.path.join(root_dir, folder_name) 
+for folder in glob.iglob(search_path, recursive=True):
+    if os.path.isdir(folder): shutil.rmtree(folder)"""
+    interpreter="python"
+
+    [tool.poe.tasks.docs]
+    help="Create and open the documentation for pykiso."
+    sequence=["clean_docs",{shell="""
+import os,webbrowser
+DOCS_DIR = os.getcwd()  +"/docs"
+os.system(f"sphinx-build -b html {DOCS_DIR} { DOCS_DIR  +'/_build'}")
+webbrowser.open(DOCS_DIR+"/_build/index.html")""",interpreter="python"}]
+
+    [tool.poe.tasks.changelog]
+    shell="""
+import os
+os.system("auto-changelog -u --template templates/changelog/changelog.jinja2")"""
+    interpreter="python"
+
+    [tool.poe.tasks.clean_tests]
+    shell= """
+import os,glob,shutil
+root_dir = os.getcwd()
+file_name=".coverage"
+search_path = os.path.join(root_dir, str(file_name))
+for file in glob.iglob(search_path, recursive=True):
+    if os.path.isfile(file): os.remove(file)
+folder_name="**/\\.pytest_cache"
+search_path = os.path.join(root_dir, folder_name)
+for folder in glob.iglob(search_path, recursive=True):
+    if os.path.isdir(folder): shutil.rmtree(folder)
+shutil.rmtree(root_dir + "/tests/coverage_report.html", ignore_errors=True)"""
+    interpreter="python"
+
+    [tool.poe.tasks.clean]
+    sequence=["clean_build", "clean_python", "clean_tests", "clean_docs"]
+
+    [tool.poe.tasks.update_copyright]
+    shell="""
+import re,glob,pathlib
+COPYRIGHT='''\
+##########################################################################
+# Copyright (c) 2010-2022 Robert Bosch GmbH
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0.
+#
+# SPDX-License-Identifier: EPL-2.0
+##########################################################################
+
+'''
+p = pathlib.Path(".")
+files = p.glob("**/*.py")
+pat = r':Copyright:.*?SPDX-License-Identifier: EPL-[0-9.]\\s'
+cp_doc_pat = re.compile(pat, re.MULTILINE + re.DOTALL)
+pat = r'#*\\s*#\\s*Copyright.*?#\\s*SPDX-License-Identifier: EPL-[0-9.]+\\s*#*\\s+'
+cp_com_pat = re.compile(pat, re.MULTILINE + re.DOTALL)
+for pyf in files:
+    with open(pyf, "r+", encoding="utf8") as f:
+        text = f.read()
+        text = cp_doc_pat.sub("", text, count=1)
+        text = cp_com_pat.sub("", text, count=1)
+        text = COPYRIGHT + text
+        f.seek(0)
+        f.write(text)
+        f.truncate()"""
+    interpreter="python"
+    
+    [tool.poe.tasks.run]
+    ignore_fail = true
+    help = "Run the example of pykiso."
+    args=[{name="level",default="INFO",options = ["-l", "--level"]}]
+    sequence=[{shell="""
+import os
+script='''
+import os,glob,sys
+ROOT_DIR = os.getcwd()
+def run(level):
+    root_dir=ROOT_DIR
+    file_name="killme.log"
+    search_path = os.path.join(root_dir, file_name)
+    for file in glob.iglob(search_path, recursive=True):
+        if os.path.isfile(file): os.remove(file)
+    os.system(f"pykiso -c examples/dummy.yaml --log-level={level} -l killme.log")
+if __name__ == "__main__":
+    globals()[sys.argv[1]](sys.argv[2])
+'''
+with open("run.py", "w", encoding="utf8") as f:
+    f.write(script)""",interpreter="python"},
+    {cmd="python run.py run $level"},
+    {shell="""
+import os,glob
+root_dir=os.getcwd()
+file_name="run.py"
+search_path = os.path.join(root_dir, file_name)
+for file in glob.iglob(search_path, recursive=True):
+    if os.path.isfile(file): os.remove(file)""",interpreter="python"}]
