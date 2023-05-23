@@ -46,7 +46,7 @@ class CCProxy(CChannel):
     # when a CCProxy instance will then set it, it will only be set at instance level but stay
     # uninitialized at class-level
     _proxy: ProxyAuxiliary = None
-    _physical_channel: CChannel = None
+    _shared_channel: CChannel = None
 
     def __init__(self, **kwargs):
         """Initialize attributes."""
@@ -68,7 +68,7 @@ class CCProxy(CChannel):
             real communication channel.
         """
         self._proxy = proxy_aux
-        self._physical_channel = proxy_aux.channel
+        self._shared_channel = proxy_aux.channel
 
     def __getattr__(self, name: str) -> Any:
         """Implement getattr to retrieve attributes from the real channel attached
@@ -80,9 +80,9 @@ class CCProxy(CChannel):
             this proxy channel yet.
         :return: the found attribute value.
         """
-        if self._physical_channel is not None:
+        if self._shared_channel is not None:
             with self._proxy.lock:
-                return getattr(self._physical_channel, name)
+                return getattr(self._shared_channel, name)
         raise AttributeError(
             f"{self.__class__.__name__} object has no attribute '{name}'"
         )

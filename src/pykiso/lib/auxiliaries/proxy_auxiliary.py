@@ -125,10 +125,11 @@ class ProxyAuxiliary(DTAuxiliaryInterface):
             # prevent negative values on invalid initialization
             if value >= 0:
                 self._open_count = value
-            if last_connection_closed and self.is_instance:
-                self.delete_instance()
-            elif first_connection_opened and not self.is_instance:
-                self.create_instance()
+
+        if last_connection_closed and self.is_instance:
+            self.delete_instance()
+        elif first_connection_opened and not self.is_instance:
+            self.create_instance()
 
     @staticmethod
     def _init_trace(
